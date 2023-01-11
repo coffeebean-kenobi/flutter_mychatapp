@@ -21,3 +21,11 @@ samples, guidance on mobile development, and a full API reference.
 % git add .
 % git commit -m 'main'
 % git push -u origin main 
+
+
+# flutterにfirebaseを追加
+
+https://firebase.google.com/docs/flutter/setup?platform=ios
+
+何かあるたびに以下を実行
+% flutterfire configure
