@@ -2,24 +2,36 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-void main() async {
+class UserState extends ChangeNotifier {
+  User? user;
+  void setUser(User newUser) {
+    user = newUser;
+    notifyListeners();
+  }
+}
+
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  var firebaseApp = await Firebase.initializeApp();
+  Firebase.initializeApp();
   runApp(ChatApp());
 }
 
 class ChatApp extends StatelessWidget {
-  const ChatApp({super.key});
+  final UserState userState = UserState();
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'ChatApp',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
+    return ChangeNotifierProvider<UserState>(
+      create: (context) => UserState(),
+      child: MaterialApp(
+        title: 'ChatApp',
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+        ),
+        home: LoginPage(),
       ),
-      home: LoginPage(),
     );
   }
 }
@@ -36,6 +48,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final UserState userState = Provider.of<UserState>(context);
     return Scaffold(
       body: Center(
         child: Container(
@@ -73,10 +86,11 @@ class _LoginPageState extends State<LoginPage> {
                       final FirebaseAuth auth = FirebaseAuth.instance;
                       final result = await auth.createUserWithEmailAndPassword(
                           email: email, password: password);
+                      userState.setUser(result.user!);
                       await Navigator.of(context)
                           .pushReplacement(MaterialPageRoute(
                         builder: (context) {
-                          return ChatPage(result.user!);
+                          return ChatPage();
                         },
                       ));
                     } catch (e) {
@@ -99,9 +113,10 @@ class _LoginPageState extends State<LoginPage> {
                       final FirebaseAuth auth = FirebaseAuth.instance;
                       final result = await auth.signInWithEmailAndPassword(
                           email: email, password: password);
+                      userState.setUser(result.user!);
                       await Navigator.of(context).pushReplacement(
                           MaterialPageRoute(builder: (context) {
-                        return ChatPage(result.user!);
+                        return ChatPage();
                       }));
                     } catch (e) {
                       setState(() {
@@ -120,11 +135,13 @@ class _LoginPageState extends State<LoginPage> {
 }
 
 class ChatPage extends StatelessWidget {
-  ChatPage(this.user);
-  final User user;
+  ChatPage();
 
   @override
   Widget build(BuildContext context) {
+    final UserState userState = Provider.of<UserState>(context);
+    final User user = userState.user!;
+
     return Scaffold(
       appBar: AppBar(
         title: Text('チャット'),
@@ -190,7 +207,7 @@ class ChatPage extends StatelessWidget {
         onPressed: () async {
           await Navigator.of(context)
               .push(MaterialPageRoute(builder: (context) {
-            return AddPostPage(user);
+            return AddPostPage();
           }));
         },
         child: Icon(Icons.add),
@@ -200,8 +217,7 @@ class ChatPage extends StatelessWidget {
 }
 
 class AddPostPage extends StatefulWidget {
-  AddPostPage(this.user);
-  final User user;
+  AddPostPage();
 
   @override
   _AddPostPageState createState() => _AddPostPageState();
@@ -212,6 +228,9 @@ class _AddPostPageState extends State<AddPostPage> {
 
   @override
   Widget build(BuildContext context) {
+    final UserState userState = Provider.of<UserState>(context);
+    final User user = userState.user!;
+
     return Scaffold(
       appBar: AppBar(
         title: Text('チャット投稿'),
@@ -239,7 +258,7 @@ class _AddPostPageState extends State<AddPostPage> {
                     child: Text('投稿'),
                     onPressed: () async {
                       final date = DateTime.now().toLocal().toIso8601String();
-                      final email = widget.user.email;
+                      final email = user.email;
                       await FirebaseFirestore.instance
                           .collection('posts')
                           .doc()
